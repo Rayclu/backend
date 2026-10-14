@@ -212,6 +212,48 @@ export class EventsService {
     return this.prisma.event.delete({ where: { id } });
   }
 
+  async inviteUserToEvent(
+    id: string,
+    invitedUserId: string,
+    user: { id: string; role: UserRole; institutionId?: string | null },
+  ) {
+    const event = await this.prisma.event.findUnique({
+      where: { id },
+      include: { attendees: true },
+    });
+
+    if (!event) {
+      throw new NotFoundException(`Event with ID ${id} not found`);
+    }
+
+    if (!this.canModifyEvent(event, user)) {
+      throw new ForbiddenException('You do not have permission to invite people to this event');
+    }
+
+    if (event.creatorId === invitedUserId) {
+      throw new ForbiddenException('The event creator is already part of the event');
+    }
+
+    if (event.attendees.some((a) => a.id === invitedUserId)) {
+      throw new ForbiddenException('This user is already invited or attending this event');
+    }
+
+    if (event.maxAttendees > 0 && event.currentAttendees >= event.maxAttendees) {
+      throw new ForbiddenException('Event is full');
+    }
+
+    return this.prisma.event.update({
+      where: { id },
+      data: {
+        attendees: { connect: { id: invitedUserId } },
+        currentAttendees: { increment: 1 },
+      },
+      include: {
+        attendees: { select: userMinimalSelect },
+      },
+    });
+  }
+
   async attendEvent(id: string, userId: string) {
     const event = await this.prisma.event.findUnique({
       where: { id },
@@ -239,6 +281,14 @@ export class EventsService {
     });
   }
 
+  async confirmAssistance(id: string, userId: string) {
+    return this.attendEvent(id, userId);
+  }
+
+  async confirmAttendance(id: string, userId: string) {
+    return this.attendEvent(id, userId);
+  }
+
   async unattendEvent(id: string, userId: string) {
     const event = await this.prisma.event.findUnique({
       where: { id },
@@ -260,6 +310,10 @@ export class EventsService {
         currentAttendees: { decrement: 1 },
       },
     });
+  }
+
+  async leaveEvent(id: string, userId: string) {
+    return this.unattendEvent(id, userId);
   }
 
   async getUpcomingEvents(user: { id: string; role: UserRole; institutionId?: string | null }, limit = 10) {

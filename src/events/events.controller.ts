@@ -93,12 +93,40 @@ export class EventsController {
     return this.eventsService.update(id, updateEventDto, user);
   }
 
+  @Post(':id/invite')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Invite a user to an event' })
+  @ApiResponse({ status: 200, description: 'User invited successfully' })
+  async inviteUser(
+    @Param('id') id: string,
+    @Body('userId') userId: string,
+    @CurrentUser() user: CurrentUserInfo,
+  ) {
+    return this.eventsService.inviteUserToEvent(id, userId, user);
+  }
+
   @Post(':id/attend')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Attend an event' })
   @ApiResponse({ status: 200, description: 'Successfully attending event' })
   async attend(@Param('id') id: string, @CurrentUser() user: CurrentUserInfo) {
     return this.eventsService.attendEvent(id, user.id);
+  }
+
+  @Post(':id/confirm-assistance')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Confirm assistance to an event' })
+  @ApiResponse({ status: 200, description: 'Assistance confirmed successfully' })
+  async confirmAssistance(@Param('id') id: string, @CurrentUser() user: CurrentUserInfo) {
+    return this.eventsService.confirmAssistance(id, user.id);
+  }
+
+  @Post(':id/leave')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Leave an event' })
+  @ApiResponse({ status: 200, description: 'Left event successfully' })
+  async leaveEvent(@Param('id') id: string, @CurrentUser() user: CurrentUserInfo) {
+    return this.eventsService.leaveEvent(id, user.id);
   }
 
   @Post(':id/unattend')
