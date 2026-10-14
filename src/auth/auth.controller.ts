@@ -8,6 +8,7 @@ import {
   Request,
   HttpCode,
   HttpStatus,
+  Res,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
@@ -17,11 +18,14 @@ import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { JwtRefreshGuard } from './guards/jwt-refresh.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
+import { type Response } from 'express';
 
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+) {}
 
   @Post('register')
   @ApiOperation({ summary: 'Register a new user' })
@@ -36,8 +40,19 @@ export class AuthController {
   @ApiOperation({ summary: 'Login user' })
   @ApiResponse({ status: 200, description: 'Login successful' })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
-  async login(@Body() loginDto: LoginDto) {
-    return this.authService.login(loginDto);
+  async login(
+    @Body() loginDto: LoginDto,
+    @Res() resp: Response
+) {
+    console.log(loginDto);
+    try{
+        const res = await this.authService.login(loginDto);
+        console.log(res);
+        return resp.status(HttpStatus.OK).send(res);
+    }catch(error){
+        console.log(error)
+        return resp.status(HttpStatus.BAD_REQUEST).send(error);
+    }
   }
 
   @Post('refresh')

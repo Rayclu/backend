@@ -1,6 +1,6 @@
 import { IsString, IsOptional, IsEnum, IsDateString, IsNumber, Min, IsUrl, IsArray, IsBoolean } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { EventCategory, EventVisibility } from '@prisma/client';
+import { EventCategory, EventStatus, EventVisibility } from '@prisma/client';
 
 export class CreateEventDto {
   @ApiProperty({ example: 'Tech Conference 2024' })
@@ -21,6 +21,11 @@ export class CreateEventDto {
   @IsOptional()
   @IsEnum(EventVisibility)
   visibility?: EventVisibility;
+
+  @ApiPropertyOptional({ enum: EventStatus, example: EventStatus.PUBLISHED })
+  @IsOptional()
+  @IsEnum(EventStatus)
+  status?: EventStatus;
 
   @ApiProperty({ example: '2024-06-15T09:00:00Z' })
   @IsDateString()

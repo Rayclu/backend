@@ -6,107 +6,132 @@ import { EventQueryDto } from './dto/event-query.dto';
 import { UserRole, UserStatus, EventStatus, EventVisibility, EventCategory } from '@prisma/client';
 import { userMinimalSelect } from '../common/prisma/selects';
 
+
 @Injectable()
 export class EventsService {
   constructor(private prisma: PrismaService) {}
 
   async create(createEventDto: CreateEventDto, userId: string) {
-    return this.prisma.event.create({
+    const status = createEventDto.status ?? EventStatus.PUBLISHED;
+    const visibility = createEventDto.visibility ?? EventVisibility.PUBLIC;
+
+    const creation = this.prisma.event.create({
       data: {
         ...createEventDto,
         creatorId: userId,
+        status,
+        visibility,
         tags: createEventDto.tags || [],
+        publishedAt: status === EventStatus.PUBLISHED ? new Date() : null,
       },
     });
+    return creation;
   }
 
   async findAll(query: EventQueryDto, user: { id: string; role: UserRole; institutionId?: string | null }) {
-    const {
-      page = 1,
-      limit = 10,
-      search,
-      status,
-      category,
-      visibility,
-      startDateFrom,
-      startDateTo,
-      endDateFrom,
-      endDateTo,
-      city,
-      country,
-      institutionId,
-      boardId,
-      groupId,
-      creatorId,
-      assigneeId,
-      tags,
-      sortBy = 'startDate',
-      sortOrder = 'asc',
-    } = query;
+    // const usr = await this.prisma.user.findFirst({
+    //     where: {
+    //         id: user.id
+    //     },
+    //     select: {
+            
+    //     }
+    // });
+    const res = await this.prisma.event.findMany(
+        // {
+        //     where: {
+        //         tags: 
+        //     }
+        // }
+    );
+    console.log(res);
+    return res 
+    // const {
+    //   page = 1,
+    //   limit = 10,
+    //   search,
+    //   status,
+    //   category,
+    //   visibility,
+    //   startDateFrom,
+    //   startDateTo,
+    //   endDateFrom,
+    //   endDateTo,
+    //   city,
+    //   country,
+    //   institutionId,
+    //   boardId,
+    //   groupId,
+    //   creatorId,
+    //   assigneeId,
+    //   tags,
+    //   sortBy = 'startDate',
+    //   sortOrder = 'asc',
+    // } = query;
 
-    const where: any = {};
+    // const where: any = {};
 
-    // Visibility filter based on user role
-    if (user.role !== UserRole.ADMIN) {
-      where.OR = [
-        { visibility: EventVisibility.PUBLIC },
-        { institutionId: user.institutionId },
-        { group: { members: { some: { id: user.id } } } },
-      ];
-    }
+    // // Visibility filter based on user role
+    // if (user.role !== UserRole.ADMIN) {
+    //   where.OR = [
+    //     { visibility: EventVisibility.PUBLIC },
+    //     { institutionId: user.institutionId },
+    //     { group: { members: { some: { id: user.id } } } },
+    //   ];
+    // }
 
-    if (search) {
-      where.OR = [
-        { title: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
-        { tags: { hasSome: [search] } },
-      ];
-    }
+    // if (search) {
+    //   where.OR = [
+    //     { title: { contains: search, mode: 'insensitive' } },
+    //     { description: { contains: search, mode: 'insensitive' } },
+    //     { tags: { hasSome: [search] } },
+    //   ];
+    // }
 
-    if (status) where.status = status;
-    if (category) where.category = category;
-    if (visibility) where.visibility = visibility;
-    if (institutionId) where.institutionId = institutionId;
-    if (boardId) where.boardId = boardId;
-    if (groupId) where.groupId = groupId;
-    if (creatorId) where.creatorId = creatorId;
-    if (assigneeId) where.assigneeId = assigneeId;
+    // if (status) where.status = status;
+    // if (category) where.category = category;
+    // if (visibility) where.visibility = visibility;
+    // if (institutionId) where.institutionId = institutionId;
+    // if (boardId) where.boardId = boardId;
+    // if (groupId) where.groupId = groupId;
+    // if (creatorId) where.creatorId = creatorId;
+    // if (assigneeId) where.assigneeId = assigneeId;
 
-    if (startDateFrom || startDateTo) {
-      where.startDate = {};
-      if (startDateFrom) where.startDate.gte = new Date(startDateFrom);
-      if (startDateTo) where.startDate.lte = new Date(startDateTo);
-    }
+    // if (startDateFrom || startDateTo) {
+    //   where.startDate = {};
+    //   if (startDateFrom) where.startDate.gte = new Date(startDateFrom);
+    //   if (startDateTo) where.startDate.lte = new Date(startDateTo);
+    // }
 
-    if (endDateFrom || endDateTo) {
-      where.endDate = {};
-      if (endDateFrom) where.endDate.gte = new Date(endDateFrom);
-      if (endDateTo) where.endDate.lte = new Date(endDateTo);
-    }
+    // if (endDateFrom || endDateTo) {
+    //   where.endDate = {};
+    //   if (endDateFrom) where.endDate.gte = new Date(endDateFrom);
+    //   if (endDateTo) where.endDate.lte = new Date(endDateTo);
+    // }
 
-    if (city) where.city = { contains: city, mode: 'insensitive' };
-    if (country) where.country = { contains: country, mode: 'insensitive' };
-    if (tags && tags.length > 0) where.tags = { hasSome: tags };
+    // if (city) where.city = { contains: city, mode: 'insensitive' };
+    // if (country) where.country = { contains: country, mode: 'insensitive' };
+    // if (tags && tags.length > 0) where.tags = { hasSome: tags };
 
-    const [events, total] = await Promise.all([
-      this.prisma.event.findMany({
-        where,
-        include: {
-          creator: { select: userMinimalSelect },
-          institution: true,
-          board: true,
-          group: true,
-          assignee: { select: userMinimalSelect },
-          _count: { select: { attendees: true, resources: true, tasks: true } },
-        },
-        orderBy: { [sortBy]: sortOrder },
-        skip: (page - 1) * limit,
-        take: limit,
-      }),
-      this.prisma.event.count({ where }),
-    ]);
+    // const [events, total] = await Promise.all([
+    //   this.prisma.event.findMany({
+    //     where,
+    //     include: {
+    //       creator: { select: userMinimalSelect },
+    //       institution: true,
+    //       board: true,
+    //       group: true,
+    //       assignee: { select: userMinimalSelect },
+    //       _count: { select: { attendees: true, resources: true, tasks: true } },
+    //     },
+    //     orderBy: { [sortBy]: sortOrder },
+    //     skip: (page - 1) * limit,
+    //     take: limit,
+    //   }),
+    //   this.prisma.event.count({ where }),
+    // ]);
 
-    return { events, total, page, limit };
+    // return { events, total, page, limit };
   }
 
   async findById(id: string, user: { id: string; role: UserRole; institutionId?: string | null }) {
@@ -116,7 +141,7 @@ export class EventsService {
         creator: { select: userMinimalSelect },
         institution: true,
         board: true,
-        group: true,
+        groupId: true,
         assignee: { select: userMinimalSelect },
         resources: true,
         tasks: true,
@@ -163,7 +188,7 @@ export class EventsService {
         creator: { select: userMinimalSelect },
         institution: true,
         board: true,
-        group: true,
+        groupId: true,
       },
     });
   }
@@ -247,12 +272,17 @@ export class EventsService {
       where.OR = [
         { visibility: EventVisibility.PUBLIC },
         { institutionId: user.institutionId },
-        { group: { members: { some: { id: user.id } } } },
+        { groupId: { members: { some: { id: user.id } } } },
       ];
     }
 
-    return this.prisma.event.findMany({
-      where,
+    const res = await this.prisma.event.findMany({
+      where: {
+        startDate: {
+            gt: new Date()
+        },
+        status: EventStatus.PUBLISHED
+      },
       include: {
         creator: { select: userMinimalSelect },
         institution: true,
@@ -260,6 +290,8 @@ export class EventsService {
       orderBy: { startDate: 'asc' },
       take: limit,
     });
+    console.log(res);
+    return res
   }
 
   async getEventsByInterest(interests: string[], limit = 10) {

@@ -8,9 +8,10 @@ import {
   Param,
   Query,
   UseGuards,
-  Request,
   HttpCode,
   HttpStatus,
+  Res,
+  BadGatewayException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { EventsService } from './events.service';
@@ -20,6 +21,7 @@ import { EventQueryDto } from './dto/event-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { UserRole } from '@prisma/client';
+import { type Response } from 'express';
 
 interface CurrentUserInfo {
   id: string;
@@ -34,14 +36,28 @@ interface CurrentUserInfo {
 export class EventsController {
   constructor(private readonly eventsService: EventsService) {}
 
-  @Post()
+  @Post('/create')
   @ApiOperation({ summary: 'Create a new event' })
   @ApiResponse({ status: 201, description: 'Event created successfully' })
-  async create(@Body() createEventDto: CreateEventDto, @CurrentUser() user: CurrentUserInfo) {
-    return this.eventsService.create(createEventDto, user.id);
+  async create(
+    @Body() createEventDto: CreateEventDto, 
+    @CurrentUser() user: CurrentUserInfo,
+    @Res() res: Response
+    ) {
+    try {
+        console.log(createEventDto);
+        const evCreation = await this.eventsService.create(createEventDto, user.id);
+        if(!evCreation) throw new BadGatewayException()
+        console.log(evCreation);
+        return res.status(HttpStatus.ACCEPTED).send(evCreation);
+    } catch (error) {
+        console.log(error)
+        return res.status(HttpStatus.BAD_REQUEST).send(error);
+    }
+
   }
 
-  @Get()
+  @Get('/find')
   @ApiOperation({ summary: 'Get all events with filters' })
   @ApiResponse({ status: 200, description: 'List of events' })
   async findAll(@Query() query: EventQueryDto, @CurrentUser() user: CurrentUserInfo) {

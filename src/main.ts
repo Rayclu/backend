@@ -2,10 +2,16 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { NestExpressApplication } from '@nestjs/platform-express'
 import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule,
+    {
+        bodyParser: false
+    }
+  );
+  app.useBodyParser('json', { limit: '15mb'})
   const configService = app.get(ConfigService);
 
   app.enableCors(configService.get('cors'));
