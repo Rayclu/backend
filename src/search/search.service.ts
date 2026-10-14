@@ -86,7 +86,7 @@ export class SearchService {
       where.OR = [
         { visibility: EventVisibility.PUBLIC },
         { institutionId: user.institutionId },
-        { group: { members: { some: { id: user.id } } } },
+        //{ groupId: { members: { some: { id: user.id } } } },
       ];
     }
 
@@ -310,14 +310,14 @@ export class SearchService {
         { isPublic: true },
         { uploaderId: user.id },
         { institutionId: user.institutionId },
-        { group: { members: { some: { id: user.id } } } },
+        //{ group: { members: { some: { id: user.id } } } },
       ];
     } else if (user.role === UserRole.INSTITUTIONAL_USER) {
       where.OR = [
         { isPublic: true },
         { uploaderId: user.id },
         { institutionId: user.institutionId },
-        { group: { members: { some: { id: user.id } } } },
+        //{ group: { members: { some: { id: user.id } } } },
       ];
     }
 
@@ -326,7 +326,6 @@ export class SearchService {
       include: {
         uploader: { select: userMinimalSelect },
         event: true,
-        group: true,
       },
       orderBy: { createdAt: 'desc' },
       take: limit,
