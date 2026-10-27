@@ -71,24 +71,32 @@ export class SearchService {
   }
 
   private async searchEvents(searchTerm: string, user: { id: string; role: UserRole; institutionId?: string | null }, limit: number): Promise<SearchResult[]> {
+    const and: any[] = [];
+
+    if (searchTerm) {
+      and.push({
+        OR: [
+          { title: { contains: searchTerm, mode: 'insensitive' } },
+          { description: { contains: searchTerm, mode: 'insensitive' } },
+          { shortDescription: { contains: searchTerm, mode: 'insensitive' } },
+          { tags: { hasSome: [searchTerm] } },
+        ],
+      });
+    }
+
+    if (user.role !== UserRole.ADMIN) {
+      const visible: any[] = [
+        { visibility: EventVisibility.PUBLIC },
+        { creatorId: user.id },
+      ];
+      if (user.institutionId) visible.push({ institutionId: user.institutionId });
+      and.push({ OR: visible });
+    }
+
     const where: any = {
       status: EventStatus.PUBLISHED,
-      OR: [
-        { title: { contains: searchTerm, mode: 'insensitive' } },
-        { description: { contains: searchTerm, mode: 'insensitive' } },
-        { shortDescription: { contains: searchTerm, mode: 'insensitive' } },
-        { tags: { hasSome: [searchTerm] } },
-      ],
+      ...(and.length ? { AND: and } : {}),
     };
-
-    // Apply visibility
-    if (user.role !== UserRole.ADMIN) {
-      where.OR = [
-        { visibility: EventVisibility.PUBLIC },
-        { institutionId: user.institutionId },
-        //{ groupId: { members: { some: { id: user.id } } } },
-      ];
-    }
 
     const events = await this.prisma.event.findMany({
       where,
@@ -113,6 +121,8 @@ export class SearchService {
         city: event.city,
         country: event.country,
         institutionId: event.institutionId,
+        coverImage: event.coverImage,
+        bannerImage: event.bannerImage,
       },
       relevanceScore: this.calculateEventRelevance(event, searchTerm),
     }));

@@ -22,17 +22,21 @@ export class SearchController {
   @ApiOperation({ summary: 'Global search across all entities' })
   @ApiResponse({ status: 200, description: 'Search results' })
   async search(
-    @CurrentUser() user: { id: string; role: UserRole; institutionId?: string | null },
-    @Query('q') query: string,
+    @CurrentUser() user: CurrentUserInfo,
+    @Query('q') query?: string,
     @Query('types') types?: string,
-    @Query('limit') limit: number = 20,
+    @Query('limit') limit?: string,
   ): Promise<SearchResult[]> {
-    if (!query || query.trim().length < 2) {
-      return [];
-    }
+    const q = (query ?? '').trim();
+    const typeArray = types ? types.split(',').map((t) => t.trim()).filter(Boolean) : undefined;
 
-    const typeArray = types ? types.split(',') : undefined;
-    return this.searchService.search(query.trim(), user, { types: typeArray, limit });
+    // Una sola letra no es una búsqueda válida
+    if (q.length === 1) return [];
+    // Sin texto solo se permite listar (Discover), no la búsqueda global
+    if (q.length === 0 && !typeArray) return [];
+
+    const parsedLimit = Math.min(Math.max(Number(limit) || 20, 1), 50);
+    return this.searchService.search(q, user, { types: typeArray, limit: parsedLimit });
   }
 
   @Get('suggestions')
