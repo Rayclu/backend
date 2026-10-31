@@ -10,6 +10,16 @@ async function bootstrap() {
 
   app.enableCors(configService.get('cors'));
 
+  // Request logging middleware
+  app.use((req: any, res: any, next: any) => {
+    const start = Date.now();
+    res.on('finish', () => {
+      const duration = Date.now() - start;
+      console.log(`${req.method} ${req.originalUrl} ${res.statusCode} ${duration}ms`);
+    });
+    next();
+  });
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

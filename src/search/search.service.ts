@@ -24,6 +24,7 @@ export class SearchService {
 
     // Search events
     if (types.includes('event')) {
+        console.log("hola");
       const events = await this.searchEvents(searchTerm, user, perTypeLimit);
       results.push(...events);
     }
@@ -86,12 +87,24 @@ export class SearchService {
       where.OR = [
         { visibility: EventVisibility.PUBLIC },
         { institutionId: user.institutionId },
-        { group: { members: { some: { id: user.id } } } },
+        { groupId: { members: { some: { id: user.id } } } },
       ];
     }
-
+    console.log("hola2")
     const events = await this.prisma.event.findMany({
-      where,
+      where: {
+        status: EventStatus.PUBLISHED,
+        OR: [
+            { title: { contains: searchTerm, mode: 'insensitive' } },
+            { description: { contains: searchTerm, mode: 'insensitive' } },
+            { shortDescription: { contains: searchTerm, mode: 'insensitive' } },
+            { tags: { hasSome: [searchTerm] } },
+            { visibility: EventVisibility.PUBLIC },
+            { institutionId: user.institutionId },
+            // { groupId: { members: { some: { id: user.id } } } },
+        ],
+
+      },
       include: {
         creator: { select: userMinimalSelect },
         institution: true,
@@ -326,7 +339,7 @@ export class SearchService {
       include: {
         uploader: { select: userMinimalSelect },
         event: true,
-        group: true,
+        groupId: true,
       },
       orderBy: { createdAt: 'desc' },
       take: limit,

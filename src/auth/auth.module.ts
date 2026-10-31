@@ -14,20 +14,12 @@ import { LocalStrategy } from './strategies/local.strategy';
   imports: [
     UsersModule,
     PassportModule,
-    // JwtModule.registerAsync({
-    //   imports: [ConfigModule],
-    //   useFactory: async (configService: ConfigService) => ({
-    //     secret: configService.get<string>('jwt.secret'),
-    //     signOptions: { expiresIn: configService.get<string>('jwt.expiresIn') },
-    //   }),
-    //   inject: [ConfigService],
-    // }),
+    ConfigModule,
     JwtModule.register({
       global: true,
-      secret: process.env.secret,
-      signOptions: { expiresIn: '60s' },
+      secret: process.env.JWT_SECRET || 'meetia-super-secret-key-change-in-production',
+      signOptions: { expiresIn: '24h' },
     }),
-
   ],
   controllers: [AuthController],
   providers: [
