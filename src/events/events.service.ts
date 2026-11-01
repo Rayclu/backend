@@ -141,7 +141,7 @@ export class EventsService {
         creator: { select: userMinimalSelect },
         institution: true,
         board: true,
-        groupId: true,
+        group: { include: { members: { select: userMinimalSelect } } },
         assignee: { select: userMinimalSelect },
         resources: true,
         tasks: true,
@@ -188,7 +188,7 @@ export class EventsService {
         creator: { select: userMinimalSelect },
         institution: true,
         board: true,
-        groupId: true,
+        group: true,
       },
     });
   }
@@ -321,15 +321,12 @@ export class EventsService {
       startDate: { gt: new Date() },
       status: EventStatus.PUBLISHED,
     };
-
     if (user.role !== UserRole.ADMIN) {
       where.OR = [
-        { visibility: EventVisibility.PUBLIC },
-        { institutionId: user.institutionId },
-        { groupId: { members: { some: { id: user.id } } } },
+        { creatorId: user.id },
+        { attendees: { some: { id: user.id } } },
       ];
     }
-
     const res = await this.prisma.event.findMany({
       where: {
         startDate: {
